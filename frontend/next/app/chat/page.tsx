@@ -127,7 +127,7 @@ export default function ChatPage() {
       if (!response.ok) throw new Error('Audio upload failed')
 
       const data = await response.json()
-      setInput(data.transcription || '')
+      setInput(data.Transcription || '')
     } catch (err) {
       setError('Failed to transcribe audio')
     } finally {
