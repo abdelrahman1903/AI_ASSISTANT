@@ -2,18 +2,19 @@
 
 A personal AI Assistant project combining a Node backend, Python services, a Flutter mobile app, and a Next.js web frontend.
 
-## Main Features
+## Main Features (Completed)
 
-- Natural language interaction and audio processing (STT/TTS).
-- Reminder and scheduling management backed by a MongoDB datastore.
-- User authentication and email utilities (password reset, notifications).
-- Image generation and image processing utilities.
-- Cross-platform frontends: Flutter mobile/desktop and a Next.js web UI.
+- Speech-to-text (STT) and text-to-speech (TTS) — audio capture, transcription, and synthesized audio output.
+- Image processing and image generation utilities (generative routines and image transforms available in Python services).
+- Mail sending and reading implemented in the Python services using Gmail OAuth2 (service uses OAuth2 flow for Gmail access.
+- Weather lookup tool for retrieving current conditions and simple forecasts.
+- User authentication scaffolding (Node) and user model present; core user flows are available via the Node API.
+- Cross-platform frontends: Flutter mobile/desktop and a Next.js web UI (both designed to consume the backend API).
 
 ## Repository Structure
 
 - `Backend/Node` — Express-based API server, controllers, models, routes and utilities.
-- `Backend/Python` — Python services for ML, audio/image processing, and reminder logic.
+- `Backend/Python` — Python services that implement most of the finished features: audio (STT/TTS), image processing/generation, mail (Gmail OAuth2), weather tools, and various utilities and scripts. This folder is the primary location for the project's working ML/processing logic.
 - `frontend/flutter` — Flutter application (mobile + desktop targets).
 - `next` — Next.js web frontend.
 
@@ -53,15 +54,15 @@ npm run start
 
 4. Environment variables
 
-- Create a `.env` file (or set environment variables) for DB connection, JWT secret, SMTP creds, etc. Typical variables:
+- Create a `.env` file (or set environment variables) for DB connection, JWT secret, etc. Typical variables:
 
 ```
 MONGODB_URI=mongodb://localhost:27017/ai_assistant
 JWT_SECRET=your_jwt_secret
-SMTP_HOST=smtp.example.com
-SMTP_PORT=587
-SMTP_USER=you@example.com
-SMTP_PASS=yourpassword
+JWT_EXPIRES_IN = time till expiry
+JWT_COOKIE_EXPIRES = time till expiry
+NODE_PORT= your node port
+NODE_ENV= development
 ```
 
 Backend (Python)
@@ -121,14 +122,14 @@ npm run dev
 
 ## Usage
 
-- Use the REST API routes exposed by the Node backend for authentication, reminders, and other features. See `Backend/Node/src/routes` for route files and `controllers` for logic.
+- Use the REST API routes exposed by the Node backend for authentication, history storage, and other features. See `Backend/Node/src/routes` for route files and `controllers` for logic.
 - The Python services may provide helper CLI scripts or importable modules used by the backend — check `Backend/Python` for details.
 - The Flutter and Next frontends consume the backend API endpoints. Update the API base URL in each frontend's configuration when running locally or deploying.
 
 ## Development Notes
 
 - Database: the project uses MongoDB via `mongoose` (see `Backend/Node/src/config/db.js`). Ensure `MONGODB_URI` points to a running DB.
-- Email: email utilities use `nodemailer`. Provide SMTP credentials in environment variables to enable email features.
+- Email: email utilities use `oOth2 by gmail`. Setup enviroment in google cloud for email features.
 - Authentication: JWT tokens are used for protected routes. Make sure `JWT_SECRET` is set.
 
 ## Testing & Linting
