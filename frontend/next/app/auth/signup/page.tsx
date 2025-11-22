@@ -9,11 +9,13 @@ import Link from 'next/link'
 
 export default function SignUp() {
   const router = useRouter()
+  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const NODE_URL = process.env.NEXT_PUBLIC_BASE_NODE_URL;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -32,10 +34,10 @@ export default function SignUp() {
     setLoading(true)
 
     try {
-      const response = await fetch('http://localhost:8000/signup', {
+      const response = await fetch(`${NODE_URL}/api/v1/users/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ name, email, password, passwordConfirm: confirmPassword }),
       })
 
       if (!response.ok) {
@@ -44,7 +46,7 @@ export default function SignUp() {
       }
 
       const data = await response.json()
-      localStorage.setItem('authToken', data.access_token)
+      localStorage.setItem('authToken', data.token)
       router.push('/chat')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
@@ -68,6 +70,17 @@ export default function SignUp() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="text-sm font-medium text-foreground block mb-2">Name</label>
+            <Input
+              type="text"
+              placeholder="John Doe"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
+          </div>
+
           <div>
             <label className="text-sm font-medium text-foreground block mb-2">Email</label>
             <Input
