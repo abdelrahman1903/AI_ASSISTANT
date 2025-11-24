@@ -1,6 +1,7 @@
 import base64
 from datetime import datetime, timedelta, timezone
-from fastapi import FastAPI, UploadFile, File, Form, Request, Header
+from uuid import uuid4
+from fastapi import BackgroundTasks, FastAPI, UploadFile, File, Form, Request, Header
 from fastapi.middleware.cors import CORSMiddleware
 from Model import Model 
 from AudioProcessing.STTTool import STTTool
@@ -16,7 +17,7 @@ from Session import Session
 from apscheduler.schedulers.background import BackgroundScheduler
 from ImageProcessing.ImageProcessing import ImageProcessing
 
-from fastapi.responses import RedirectResponse, JSONResponse
+from fastapi.responses import FileResponse, RedirectResponse, JSONResponse
 from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
 import requests
@@ -96,21 +97,66 @@ async def chat(request: Request,authorization: str = Header(None)):
 async def chat(audio: UploadFile = File(...),authorization: str = Header(None)):
     if authorization is None:
         return {"status_code":401, "response": "Missing token"}
-    
-    input_path = "temp_input"  + authorization + ".webm" # Save raw uploaded file
-    wav_path = "temp_audio"   + authorization + ".wav" # Will convert to this
-    with open(input_path, "wb") as buffer:
-        shutil.copyfileobj(audio.file, buffer)
-    audio_segment = AudioSegment.from_file(input_path)
-    audio_segment = audio_segment.set_frame_rate(16000).set_channels(1)  # Ensure 16kHz mono for Whisper
-    audio_segment.export(wav_path, format="wav")
-    text = whisper_instance.generate_response(wav_path)
-    # is_voice_generated = TTSTool_instance.elevenlabs_tts(text,wav_path)
-    # if not is_voice_generated :
-    #     slow_TTS_instance.generate_speech(text,wav_path,"en","speaker.wav") #⚠️⚠️language to be input instead of hard coded
-    os.remove(input_path)
-    os.remove(wav_path)
-    return {"Transcription": text}  # ✅ Ensure the correct response field
+    try:
+        # Generate a safe unique file ID for this request
+        file_id = str(uuid4())
+
+        input_path = f"temp_input_{file_id}.webm"
+        wav_path   = f"temp_audio_{file_id}.wav"
+
+        with open(input_path, "wb") as buffer:
+            shutil.copyfileobj(audio.file, buffer)
+
+        audio_segment = AudioSegment.from_file(input_path)
+        audio_segment = audio_segment.set_frame_rate(16000).set_channels(1)  # Ensure 16kHz mono for Whisper
+        audio_segment.export(wav_path, format="wav")
+
+        text = whisper_instance.generate_response(wav_path)
+
+        # Clean up temporary files
+        os.remove(input_path)
+        os.remove(wav_path)
+        
+        return {"Transcription": text}  # ✅ Ensure the correct response field
+    except Exception as e:
+        print("Error processing audio:", e)
+        return {"Transcription": "Failed to process audio", "details": str(e)}
+
+@app.post("/tts")
+async def text_to_speech(request: Request, authorization: str = Header(None)):
+    if authorization is None:
+        return {"status_code": 401, "response": "Missing token"}
+
+    try:
+        data = await request.json()
+        text = data.get("text", "").strip()
+
+        if not text:
+            return {"status_code": 400, "response": "Text cannot be empty"}
+
+        # Generate unique filename
+        file_id = str(uuid4())
+        output_path = f"uploads/temp_tts_{file_id}.mp3"
+
+        # Generate speech
+        success = TTSTool_instance.elevenlabs_tts(text, output_path)
+        if not success:
+            return {"status_code": 500, "response": "Failed to generate speech"}
+        # ⚠️⚠️ to be uncommented for production
+        # Cleanup after sending
+        # bg = BackgroundTasks()
+        # bg.add_task(os.remove, output_path)
+
+        return FileResponse(
+            output_path,
+            media_type="audio/mpeg",
+            filename="speech.mp3",
+            # background=bg
+        )
+
+    except Exception as e:
+        print("Error generating TTS:", e)
+        return {"status_code": 500, "response": "Error generating speech", "details": str(e)}
 
 #⚠️⚠️to do: file names should use userid for files to be unique
 # @app.post("/audio")
@@ -146,6 +192,20 @@ async def chat(audio: UploadFile = File(...),authorization: str = Header(None)):
 #     return {"response": response}
 
 
+
+@app.post("/upload_image")
+async def upload_image(file: UploadFile = File(...), authorization: str = Header(None)):
+    if authorization is None:
+        return {"status_code":401, "response": "Missing token"}
+    try:
+        print("Uploading image:", file.filename)
+        filename = f"uploads/{uuid4()}-{file.filename}"
+        with open(filename, "wb") as f:
+            f.write(await file.read())
+        return {"image_path": filename}
+    except Exception as e:
+        print("Error uploading image:", e)
+        return {"error": "Failed to upload image", "details": str(e)}
 
 @app.post("/image_processing")
 async def process_image(request: Request, authorization: str = Header(None)):

@@ -30,7 +30,7 @@ class TTSTool:
                 model_id="eleven_multilingual_v2"
             )
             save(audio, output_file)
-            playsound(output_file)  # Automatically play it
+            # playsound(output_file)  # Automatically play it
             return True
         except Exception  as e:
             print(f"[ElevenLabs] Error: {e}")

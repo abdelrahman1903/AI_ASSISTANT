@@ -11,6 +11,7 @@ Frontend/next/.env
 
 # Python
 Backend/python/.env
+Backend/python/uploads
 
 # Flutter
 Frontend/flutter/.env
